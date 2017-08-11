@@ -31,7 +31,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
     const zoomElem = this.createZoomElem(svg);
 
-    this.drawDiagram(zoomElem, this.initCluster());
+    this.drawDiagram(zoomElem, this.initViewTree());
 
     this.enableZoom(svg, zoomElem);
   }
@@ -41,14 +41,13 @@ export class AppComponent implements OnInit, OnDestroy {
       .attr('transform', 'translate(40,0)');
   }
 
-  private initCluster() {
-    const clusterImpl = cluster()
-      .size([this.height, this.width]);
+  private initViewTree() {
+    const viewTree = cluster().size([this.height, this.width]);
 
-    const rootCluster = this.createCluster();
+    const root = this.createHierarchy();
 
-    clusterImpl(rootCluster);
-    return rootCluster;
+    viewTree(root);
+    return root;
   }
 
   private setSvg() {
@@ -71,16 +70,10 @@ export class AppComponent implements OnInit, OnDestroy {
         }));
   }
 
-  private createCluster() {
-
-    const rootCluster = <any>hierarchy(treeData, function (d: any) {
+  private createHierarchy() {
+    return <any>hierarchy(treeData, function (d: any) {
       return d.children;
     });
-
-    rootCluster.x0 = this.height / 2;
-    rootCluster.y0 = 100;
-
-    return rootCluster;
   }
 
   private setSize(svg: Selection<BaseType, any, HTMLElement, any>) {
