@@ -148,7 +148,6 @@ export class AppComponent implements OnInit, OnDestroy {
         return 'node' + (d.children ? ' node--internal' : ' node--leaf');
       })
       .attr('transform', function (d: SVGSVGElement) {
-        console.log(d);
         return 'translate(' + d.y + ',' + d.x + ')';
       });
   }
