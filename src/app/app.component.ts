@@ -1,12 +1,35 @@
 import {Component, ElementRef, OnDestroy, OnInit, ViewEncapsulation} from '@angular/core';
 import {BaseType, event, select, Selection} from 'd3-selection';
-import {cluster, hierarchy} from 'd3-hierarchy';
+import {cluster, hierarchy, HierarchyCircularNode} from 'd3-hierarchy';
 import {zoom} from 'd3-zoom';
 
 
 const treeData = {
   'name': 'first',
   'children': [
+    {
+      'name': 'second',
+      'children': [
+        {
+          'name': 'three',
+          'children': [
+            {
+              'name': 'co-docker-deploy-image-dvm',
+              'children': [
+
+
+                {
+                  'name': 'ffffff1',
+                },
+                {
+                  'name': 'ffffff2',
+                },
+              ],
+            },
+          ],
+        },
+      ]
+    },
     {
       'name': 'second',
       'children': [
@@ -59,12 +82,12 @@ export class AppComponent implements OnInit, OnDestroy {
     const rootElem = select(this.parentNativeElement);
     const svg = this.svg = rootElem.select('svg');
 
-    svg.attr('width', 500);
-    svg.attr('height', 500);
+    svg.attr('width', this.width);
+    svg.attr('height', this.height);
 
     const g = svg.append('g').attr('transform', 'translate(40,0)');
 
-    const tree = cluster()
+    const clusterImpl = cluster()
       .size([this.height, this.width]);
 
     const root = <any>hierarchy(treeData, function (d: any) {
@@ -72,9 +95,10 @@ export class AppComponent implements OnInit, OnDestroy {
     });
 
     root.x0 = this.height / 2;
-    root.y0 = 0;
+    root.y0 = 100;
 
-    tree(root);
+    clusterImpl(root);
+
     this.createLink(g, root);
     this.cleateNode(g, root);
 
@@ -97,36 +121,31 @@ export class AppComponent implements OnInit, OnDestroy {
     const node = g.selectAll('.node')
       .data(root.descendants())
       .enter().append('g')
-      .attr('class', function (d: any) {
+      .attr('class', function (d: SVGSVGElement) {
         return 'node' + (d.children ? ' node--internal' : ' node--leaf');
       })
-      .attr('transform', function (d: any) {
+      .attr('transform', function (d: SVGSVGElement) {
+        console.log(d);
         return 'translate(' + d.y + ',' + d.x + ')';
       });
     node.append('circle')
       .attr('r', 2.5);
     node.append('text')
       .attr('dy', 3)
-      .attr('x', function (d: any) {
-        return d.children ? -8 : 8;
-      })
-      .attr('transform', function () {
-        return 'rotate(-40)';
-      })
-      .style('text-anchor', function (d: any) {
-        return d.children ? 'end' : 'start';
-      })
+      .attr('x', d => d.children ? -8 : 8)
+      .attr('transform', () => 'rotate(-40)')
+      .style('text-anchor', d => d.children ? 'end' : 'start')
       .text(function (d: any) {
         return d.data.name;
       });
   }
 
   private createLink(g: Selection<BaseType, any, HTMLElement, any>, root: any) {
-    const link = g.selectAll('.link')
+    g.selectAll('.link')
       .data(root.descendants().slice(1))
       .enter().append('path')
       .attr('class', 'link')
-      .attr('d', function (d: any) {
+      .attr('d', function (d: HierarchyCircularNode<SVGLineElement>) {
         return 'M' + d.y + ',' + d.x
           + 'C' + (d.parent.y + 100) + ',' + d.x
           + ' ' + (d.parent.y + 100) + ',' + d.parent.x
