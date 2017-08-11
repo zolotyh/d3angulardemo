@@ -31,8 +31,7 @@ export class AppComponent implements OnInit, OnDestroy {
     const root = this.createHierarchy();
 
     const zoomElem = this.createZoomElem(svg);
-    this.drawDiagram(zoomElem, this.initViewTree(root));
-
+    this.drawDiagram(zoomElem, this.createTreeView(root));
     this.enableZoom(svg, zoomElem);
   }
 
@@ -41,9 +40,8 @@ export class AppComponent implements OnInit, OnDestroy {
       .attr('transform', 'translate(40,0)');
   }
 
-  private initViewTree(root: any) {
-    const viewTree = cluster().size([this.height, this.width]);
-    viewTree(root);
+  private createTreeView(root: any) {
+    return cluster().size([this.height, this.width])(root);
   }
 
   private setSvg() {
@@ -81,7 +79,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.addPaths(selection, root);
 
     const nodesList = this.createNodeList(selection, root);
-    
+
     this.addClasses(nodesList);
     this.addCircle(nodesList);
     this.addText(nodesList);
