@@ -28,11 +28,9 @@ export class AppComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     const svg = this.svg = this.setSvg();
-
-    const zoomElem = this.createZoomElem(svg);
-
     const root = this.createHierarchy();
 
+    const zoomElem = this.createZoomElem(svg);
     this.drawDiagram(zoomElem, this.initViewTree(root));
 
     this.enableZoom(svg, zoomElem);
@@ -81,13 +79,19 @@ export class AppComponent implements OnInit, OnDestroy {
 
   private drawDiagram(selection: Selection<BaseType, any, HTMLElement, any>, root: any) {
     this.addPaths(selection, root);
-    const nodeSelection = selection.selectAll('.node').data(root.descendants())
+
+    const nodesList = this.createNodeList(selection, root);
+    
+    this.addClasses(nodesList);
+    this.addCircle(nodesList);
+    this.addText(nodesList);
+  }
+
+  private createNodeList(selection: Selection<BaseType, any, HTMLElement, any>, root: any) {
+    return selection.selectAll('.node')
+      .data(root.descendants())
       .enter()
       .append('g');
-
-    this.addClasses(nodeSelection);
-    this.addCircle(nodeSelection);
-    this.addText(nodeSelection);
   }
 
   private addClasses(selection: Selection<BaseType, any, BaseType, any>) {
@@ -102,12 +106,15 @@ export class AppComponent implements OnInit, OnDestroy {
 
   private addText(selection: Selection<BaseType, any, BaseType, any>) {
     selection.append('text')
+
       .attr('dy', 3)
       .attr('x', function (d: SVGSVGElement) {
         return d.children ? -8 : 8;
       })
       .attr('transform', () => 'rotate(-40)')
+
       .style('text-anchor', (d: SVGSVGElement) => d.children ? 'end' : 'start')
+
       .text(function (d: any) {
         return d.data.name;
       });
@@ -122,6 +129,7 @@ export class AppComponent implements OnInit, OnDestroy {
     selection.selectAll('.link')
       .data(root.descendants().slice(1))
       .enter().append('path')
+
       .attr('class', 'link')
       .attr('d', function (d: HierarchyCircularNode<SVGLineElement>) {
         return 'M' + d.y + ',' + d.x
