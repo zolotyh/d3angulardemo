@@ -82,11 +82,36 @@ export class AppComponent implements OnInit, OnDestroy {
     const rootElem = select(this.parentNativeElement);
     const svg = this.svg = rootElem.select('svg');
 
-    svg.attr('width', this.width);
-    svg.attr('height', this.height);
+    this.setSize(svg);
 
+
+    const root = this.createCluster();
+    this.enableZoom(svg, root);
+
+
+  }
+
+  private enableZoom(svg: Selection<BaseType, any, HTMLElement, any>, root: any) {
     const g = svg.append('g').attr('transform', 'translate(40,0)');
 
+    const zoomed = () => {
+      g.attr('transform', event.transform);
+    };
+
+    this.addPaths(g, root);
+    this.createnodeSelection(g, root);
+
+    const rect = svg.append('rect')
+      .attr('width', this.width)
+      .attr('height', this.height)
+      .style('fill', 'none')
+      .style('pointer-events', 'all')
+      .call(zoom()
+        .scaleExtent([1 / 2, 4])
+        .on('zoom', zoomed));
+  }
+
+  private createCluster() {
     const clusterImpl = cluster()
       .size([this.height, this.width]);
 
@@ -98,29 +123,27 @@ export class AppComponent implements OnInit, OnDestroy {
     root.y0 = 100;
 
     clusterImpl(root);
-
-    this.createLink(g, root);
-    this.cleateNode(g, root);
-
-    const rect = svg.append('rect')
-      .attr('width', this.width)
-      .attr('height', this.height)
-      .style('fill', 'none')
-      .style('pointer-events', 'all')
-      .call(zoom()
-        .scaleExtent([1 / 2, 4])
-        .on('zoom', zoomed));
-
-
-    function zoomed() {
-      g.attr('transform', event.transform);
-    }
+    return root;
   }
 
-  private cleateNode(g: Selection<BaseType, any, HTMLElement, any>, root: any) {
-    const node = g.selectAll('.node')
-      .data(root.descendants())
-      .enter().append('g')
+  private setSize(svg: Selection<BaseType, any, HTMLElement, any>) {
+    svg.attr('width', this.width);
+    svg.attr('height', this.height);
+  }
+
+  private createnodeSelection(g: Selection<BaseType, any, HTMLElement, any>, root: any) {
+
+    const nodeSelection = g.selectAll('.node').data(root.descendants())
+      .enter()
+      .append('g');
+
+    this.addClasses(nodeSelection);
+    this.addCircle(nodeSelection);
+    this.addText(nodeSelection);
+  }
+
+  private addClasses(nodeSelection: Selection<BaseType, any, BaseType, any>) {
+    nodeSelection
       .attr('class', function (d: SVGSVGElement) {
         return 'node' + (d.children ? ' node--internal' : ' node--leaf');
       })
@@ -128,19 +151,27 @@ export class AppComponent implements OnInit, OnDestroy {
         console.log(d);
         return 'translate(' + d.y + ',' + d.x + ')';
       });
-    node.append('circle')
-      .attr('r', 2.5);
-    node.append('text')
+  }
+
+  private addText(nodeSelection: Selection<BaseType, any, BaseType, any>) {
+    nodeSelection.append('text')
       .attr('dy', 3)
-      .attr('x', d => d.children ? -8 : 8)
+      .attr('x', function (d: SVGSVGElement) {
+        return d.children ? -8 : 8;
+      })
       .attr('transform', () => 'rotate(-40)')
-      .style('text-anchor', d => d.children ? 'end' : 'start')
+      .style('text-anchor', (d: SVGSVGElement) => d.children ? 'end' : 'start')
       .text(function (d: any) {
         return d.data.name;
       });
   }
 
-  private createLink(g: Selection<BaseType, any, HTMLElement, any>, root: any) {
+  private addCircle(nodeSelection: Selection<BaseType, any, BaseType, any>) {
+    nodeSelection.append('circle')
+      .attr('r', 2.5);
+  }
+
+  private addPaths(g: Selection<BaseType, any, HTMLElement, any>, root: any) {
     g.selectAll('.link')
       .data(root.descendants().slice(1))
       .enter().append('path')
