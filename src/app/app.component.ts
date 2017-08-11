@@ -2,64 +2,12 @@ import {Component, ElementRef, OnDestroy, OnInit, ViewEncapsulation} from '@angu
 import {BaseType, event, select, Selection} from 'd3-selection';
 import {cluster, hierarchy, HierarchyCircularNode} from 'd3-hierarchy';
 import {zoom} from 'd3-zoom';
-
-
-const treeData = {
-  'name': 'first',
-  'children': [
-    {
-      'name': 'second',
-      'children': [
-        {
-          'name': 'three',
-          'children': [
-            {
-              'name': 'co-docker-deploy-image-dvm',
-              'children': [
-
-
-                {
-                  'name': 'ffffff1',
-                },
-                {
-                  'name': 'ffffff2',
-                },
-              ],
-            },
-          ],
-        },
-      ]
-    },
-    {
-      'name': 'second',
-      'children': [
-        {
-          'name': 'three',
-          'children': [
-            {
-              'name': 'co-docker-deploy-image-dvm',
-              'children': [
-
-
-                {
-                  'name': 'ffffff1',
-                },
-                {
-                  'name': 'ffffff2',
-                },
-              ],
-            },
-          ],
-        },
-      ]
-    },
-  ]
-};
+import treeData from './data';
 
 
 @Component({
   selector: 'app-root',
-  templateUrl: './app.component.html',
+  template: '<svg />',
   styleUrls: ['./app.component.css'],
   encapsulation: ViewEncapsulation.None
 })
@@ -79,51 +27,60 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    const rootElem = select(this.parentNativeElement);
-    const svg = this.svg = rootElem.select('svg');
+    const svg = this.svg = this.setSvg();
 
-    this.setSize(svg);
+    const zoomElem = this.createZoomElem(svg);
 
+    this.drawDiagram(zoomElem, this.initCluster());
 
-    const root = this.createCluster();
-    this.enableZoom(svg, root);
-
-
+    this.enableZoom(svg, zoomElem);
   }
 
-  private enableZoom(svg: Selection<BaseType, any, HTMLElement, any>, root: any) {
-    const g = svg.append('g').attr('transform', 'translate(40,0)');
+  private createZoomElem(svg: Selection<BaseType, any, HTMLElement, any>) {
+    return svg.append('g')
+      .attr('transform', 'translate(40,0)');
+  }
 
-    const zoomed = () => {
-      g.attr('transform', event.transform);
-    };
+  private initCluster() {
+    const clusterImpl = cluster()
+      .size([this.height, this.width]);
 
-    this.addPaths(g, root);
-    this.createnodeSelection(g, root);
+    const rootCluster = this.createCluster();
 
-    const rect = svg.append('rect')
+    clusterImpl(rootCluster);
+    return rootCluster;
+  }
+
+  private setSvg() {
+    const rootElem = select(this.parentNativeElement);
+    const svg = rootElem.select('svg');
+    this.setSize(svg);
+    return svg;
+  }
+
+  private enableZoom(svg: Selection<BaseType, any, HTMLElement, any>, zoomElem: Selection<BaseType, any, HTMLElement, any>) {
+    svg.append('rect')
       .attr('width', this.width)
       .attr('height', this.height)
       .style('fill', 'none')
       .style('pointer-events', 'all')
       .call(zoom()
         .scaleExtent([1 / 2, 4])
-        .on('zoom', zoomed));
+        .on('zoom', () => {
+          zoomElem.attr('transform', event.transform);
+        }));
   }
 
   private createCluster() {
-    const clusterImpl = cluster()
-      .size([this.height, this.width]);
 
-    const root = <any>hierarchy(treeData, function (d: any) {
+    const rootCluster = <any>hierarchy(treeData, function (d: any) {
       return d.children;
     });
 
-    root.x0 = this.height / 2;
-    root.y0 = 100;
+    rootCluster.x0 = this.height / 2;
+    rootCluster.y0 = 100;
 
-    clusterImpl(root);
-    return root;
+    return rootCluster;
   }
 
   private setSize(svg: Selection<BaseType, any, HTMLElement, any>) {
@@ -131,9 +88,9 @@ export class AppComponent implements OnInit, OnDestroy {
     svg.attr('height', this.height);
   }
 
-  private createnodeSelection(g: Selection<BaseType, any, HTMLElement, any>, root: any) {
-
-    const nodeSelection = g.selectAll('.node').data(root.descendants())
+  private drawDiagram(selection: Selection<BaseType, any, HTMLElement, any>, root: any) {
+    this.addPaths(selection, root);
+    const nodeSelection = selection.selectAll('.node').data(root.descendants())
       .enter()
       .append('g');
 
@@ -142,8 +99,8 @@ export class AppComponent implements OnInit, OnDestroy {
     this.addText(nodeSelection);
   }
 
-  private addClasses(nodeSelection: Selection<BaseType, any, BaseType, any>) {
-    nodeSelection
+  private addClasses(selection: Selection<BaseType, any, BaseType, any>) {
+    selection
       .attr('class', function (d: SVGSVGElement) {
         return 'node' + (d.children ? ' node--internal' : ' node--leaf');
       })
@@ -152,8 +109,8 @@ export class AppComponent implements OnInit, OnDestroy {
       });
   }
 
-  private addText(nodeSelection: Selection<BaseType, any, BaseType, any>) {
-    nodeSelection.append('text')
+  private addText(selection: Selection<BaseType, any, BaseType, any>) {
+    selection.append('text')
       .attr('dy', 3)
       .attr('x', function (d: SVGSVGElement) {
         return d.children ? -8 : 8;
@@ -165,13 +122,13 @@ export class AppComponent implements OnInit, OnDestroy {
       });
   }
 
-  private addCircle(nodeSelection: Selection<BaseType, any, BaseType, any>) {
-    nodeSelection.append('circle')
+  private addCircle(selection: Selection<BaseType, any, BaseType, any>) {
+    selection.append('circle')
       .attr('r', 2.5);
   }
 
-  private addPaths(g: Selection<BaseType, any, HTMLElement, any>, root: any) {
-    g.selectAll('.link')
+  private addPaths(selection: Selection<BaseType, any, HTMLElement, any>, root: any) {
+    selection.selectAll('.link')
       .data(root.descendants().slice(1))
       .enter().append('path')
       .attr('class', 'link')
